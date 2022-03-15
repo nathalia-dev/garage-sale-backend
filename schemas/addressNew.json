@@ -1,0 +1,87 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "default": {},
+    "examples": [
+        {
+            "address": "2222 South Blvd",
+            "city": "Charlotte",
+            "state": "NC",
+            "zipcode": "28203",
+            "userId": 1,
+            "isDefault": true
+        }
+    ],
+    "required": [
+        "address",
+        "city",
+        "state",
+        "zipcode",
+        "userId",
+        "isDefault"
+    ],
+    "properties": {
+        "address": {
+            "$id": "#/properties/address",
+            "type": "string",
+            "title": "The address schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+                "2222 South Blvd"
+            ]
+        },
+        "city": {
+            "$id": "#/properties/city",
+            "type": "string",
+            "title": "The city schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+                "Charlotte"
+            ]
+        },
+        "state": {
+            "$id": "#/properties/state",
+            "type": "string",
+            "title": "The state schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+                "NC"
+            ]
+        },
+        "zipcode": {
+            "$id": "#/properties/zipcode",
+            "type": "string",
+            "title": "The zipcode schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+                "28203"
+            ]
+        },
+        "userId": {
+            "$id": "#/properties/userId",
+            "type": "number",
+            "title": "The userId schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+                1
+            ]
+        },
+        "isDefault": {
+            "$id": "#/properties/isDefault",
+            "type": "boolean",
+            "title": "The isDefault schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": false,
+            "examples": [
+                true
+            ]
+        }
+    },
+    "additionalProperties": false
+}

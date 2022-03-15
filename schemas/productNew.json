@@ -1,0 +1,75 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "default": {},
+    "examples": [
+        {
+            "userId": 1,
+            "productName": "chair",
+            "price": 50.99,
+            "quantity": 1,
+            "description": "a office chair with wheels"
+        }
+    ],
+    "required": [
+        "userId",
+        "productName",
+        "price",
+        "quantity",
+        "description"
+    ],
+    "properties": {
+        "userId": {
+            "$id": "#/properties/userId",
+            "type": "integer",
+            "title": "The userId schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": 0,
+            "examples": [
+                1
+            ]
+        },
+        "productName": {
+            "$id": "#/properties/productName",
+            "type": "string",
+            "title": "The productName schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+                "chair"
+            ]
+        },
+        "price": {
+            "$id": "#/properties/price",
+            "type": "number",
+            "title": "The price schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": 0.0,
+            "examples": [
+                50.99
+            ]
+        },
+        "quantity": {
+            "$id": "#/properties/quantity",
+            "type": "integer",
+            "title": "The quantity schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": 0,
+            "examples": [
+                1
+            ]
+        },
+        "description": {
+            "$id": "#/properties/description",
+            "type": "string",
+            "title": "The description schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+                "a office chair with wheels"
+            ]
+        }
+    },
+    "additionalProperties": false
+}
