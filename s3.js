@@ -14,15 +14,6 @@ const s3 = new S3({
     secretAccessKey
 })
 
-//uploads a file to S3 --> to my app , it needs to return the image Key
-//min 20:48 do video,  mostra o obj que retorna da promise. {Etag, Location, key, Key, Bucket} --> os dois keys sao iguais. 
-//pelo app do cara, usaria o que retorna da funciton uploadFile , ".key".
-// entao seria res = await uploadFile(req.body.something) --- res.key
-
-// o que preciso entender agora é : quando colocamos num formulario um file input... o que vem no body?
-//isso para poder entender essas coisas que ele ta pegando aqui no uploadFile, como file.path e fileName
-// outra coisa, tem que usar multer? ver codigo min 18:32
-
 //https://www.youtube.com/watch?v=NZElg91l_ms&ab_channel=SamMeech-Ward
 
 function uploadFile(file) {
