@@ -2,7 +2,7 @@
 
 const db = require("../db");
 const { sqlForPartialUpdate } = require("../helpers/sql");
-const { NotFoundError } = require("../expressError");
+const { NotFoundError, BadRequestError } = require("../expressError");
 
 class Address {
 	/** Create a address (from data), update db, return new address data.
@@ -69,7 +69,7 @@ class Address {
 
 	static async findAll(userId) {
 		const addresses = await db.query(
-			`SELECT id,
+			`SELECT 							 id,
 											   	 user_id AS "userId",
 		  									   	 address,
 												 city,
@@ -83,6 +83,21 @@ class Address {
 		);
 
 		return addresses.rows;
+	}
+	/** Verify if there is another default address already saved on the db.*/
+
+	static async hasAnotherDefaultAddress(addressId) {
+		const resUserId = await db.query(`SELECT user_id as "userId" FROM address WHERE id = $1` , [addressId])
+		const userId = resUserId.rows[0].userId
+		const addresses = await db.query(`SELECT id
+										  FROM address
+										  WHERE user_id = $1 AND is_default = $2 AND id != $3`,[userId,true, addressId]);			  
+		const res = addresses.rows;
+		if (res.length > 0) {
+			return true
+		}
+
+		return false
 	}
 
 	/** Verify if there is another default address already saved on the db.
@@ -122,6 +137,13 @@ class Address {
 	 */
 
 	static async update(addressId, data) {
+		if (!(data.isDefault)) {
+			const hasAnotherDefaultAddress = await Address.hasAnotherDefaultAddress(addressId)
+			if (!hasAnotherDefaultAddress) {
+				throw new BadRequestError(`You need a default address. First, choose or add another default address and then change this one.`)
+			}
+		} 
+
 		const { setCols, values } = sqlForPartialUpdate(data, {
 			isDefault: "is_default",
 		});
@@ -156,6 +178,12 @@ class Address {
 	 **/
 
 	static async remove(addressId) {
+
+		const hasAnotherDefaultAddress = await Address.hasAnotherDefaultAddress(addressId)
+		if (!hasAnotherDefaultAddress) {
+			throw new BadRequestError(`You need a default address. First, choose or add another default address and then delete this one.`)
+		}
+
 		const result = await db.query(
 			`DELETE
 			   FROM address

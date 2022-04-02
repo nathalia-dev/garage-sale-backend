@@ -133,10 +133,10 @@ class User {
 		);
 		const user = userRes.rows[0];
 
-		const address =  await db.query( `SELECT id, address, city, state, zipcode, is_default AS "is_Default"
+		const address =  await db.query( `SELECT id, address, city, state, zipcode, user_id AS "userId", is_default AS "isDefault"
 											FROM address
 											WHERE user_id = $1 AND is_default = $2`, [id, true])
-		user.address = address.rows
+		user.address = address.rows[0]
 
 		if (!user) throw new NotFoundError(`No user: ${id}`);
 

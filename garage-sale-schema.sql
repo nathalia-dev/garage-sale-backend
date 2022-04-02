@@ -33,7 +33,8 @@ CREATE TABLE products (
     quantity INTEGER NOT NULL CHECK (quantity >= 0),
     description TEXT,
     product_status_id INTEGER NOT NULL
-      REFERENCES product_status ON DELETE CASCADE
+      REFERENCES product_status ON DELETE CASCADE,
+    active BOOLEAN NOT NULL DEFAULT true
 );
 
 CREATE TABLE product_photos (

@@ -129,8 +129,8 @@ router.patch("/products/:product_id", ensureCorrectUserWithApiCall(Product, "pro
 
 router.delete("/products/:product_id", ensureCorrectUserWithApiCall(Product, "product_id"), async function (req, res, next) {
 	try {
-		await Product.remove(req.params.product_id);
-		return res.json({ deleted: +req.params.product_id });
+		await Product.softRemove(req.params.product_id);
+		return res.json({ deactivated: +req.params.product_id });
 	} catch (err) {
 		return next(err);
 	}

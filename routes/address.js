@@ -63,6 +63,25 @@ router.get("/users/:user_id/address", ensureCorrectUser, async function (req, re
 	}
 });
 
+/** I GUESS I DONT NEED THIS */
+
+
+/** GET /address/[address_id] => { address: { id, address, city, state, zipcode, userId, isDefault } }
+ *
+ * Returns the specific address
+ *
+ * Authorization required: none
+ **/
+
+//  router.get("/address/:address_id", async function (req, res, next) {
+// 	try {
+// 		const address = await Address.get(req.params.address_id);
+// 		return res.json({ address });
+// 	} catch (err) {
+// 		return next(err);
+// 	}
+// });
+
 
 /** PATCH /address/[address_id] { address } => { address }
  *
@@ -108,20 +127,4 @@ module.exports = router;
 
 
 
-/** I GUESS I DONT NEED THIS */
 
-/** GET /address/[address_id] => { address: { id, address, city, state, zipcode, userId, isDefault } }
- *
- * Returns the specific address
- *
- * Authorization required: none
- **/
-
-// router.get("/address/:address_id", async function (req, res, next) {
-// 	try {
-// 		const address = await Address.get(req.params.address_id);
-// 		return res.json({ address });
-// 	} catch (err) {
-// 		return next(err);
-// 	}
-// });

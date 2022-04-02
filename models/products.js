@@ -22,10 +22,11 @@ class Product {
                                   price,
                                   quantity,
                                   description,
+								  active,
                                   product_status_id)
-             VALUES ($1, $2, $3, $4, $5, $6)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
              RETURNING id, user_id AS "userId", product_name AS "productName", price, quantity, description, product_status_id AS "productStatusId"`,
-			[userId, productName, price, quantity, description, productStatusId]
+			[userId, productName, price, quantity, description, true, productStatusId]
 		);
 
 		const product = result.rows[0];
@@ -48,6 +49,7 @@ class Product {
                     price,
                     quantity,
                     description,
+					active,
                     product_status.status
             FROM products
 			INNER JOIN product_status ON Products.product_status_id=product_status.id
@@ -81,12 +83,13 @@ class Product {
 					          price,
 					          quantity,
 					          description,
+							  active,
 					          product_status.status
 			           FROM products
 					   INNER JOIN product_status ON Products.product_status_id=product_status.id`;
 
-		let whereExpressions = [];
-		let queryValues = [];
+		let whereExpressions = [`active = $1`];
+		let queryValues = [true];
 
 		if (userId !== undefined) {
 			queryValues.push(userId);
@@ -94,7 +97,7 @@ class Product {
 		}
 
 		if (productName !== undefined) {
-			queryValues.push(`%${productName}`);
+			queryValues.push(`%${productName}%`);
 			whereExpressions.push(`product_name ILIKE $${queryValues.length}`);
 		}
 
@@ -143,7 +146,8 @@ class Product {
                                         product_name AS "productName", 
                                         price, 
                                         quantity, 
-                                        description, 
+                                        description,
+										active, 
                                         product_status_id AS "productStatusId"`;
 
 		const result = await db.query(querySql, [...values, productId]);
@@ -154,47 +158,48 @@ class Product {
 		return product;
 	}
 
-	/** Delete given product from database; returns undefined.
+	/** Soft delete method. 
 	 * 
-	 * First check if the product has ever been sold. If true, will return a BadRequestError.
+	 * Just update the product.active to false. 
 	 * 
-	 * Throws NotFoundError if product not found.
 	 **/
 
-	static async remove(productId) {
+	static async softRemove(productId) {
 
-		const productHasBeenSold = await this.hasEverBeenSold(productId)
+		await Product.update(productId, {active: false})
+		// const productHasBeenSold = await this.hasEverBeenSold(productId)
 
-		if (productHasBeenSold) throw new BadRequestError(`You can't delete ${productId}.`)
+		// if (productHasBeenSold) throw new BadRequestError(`You can't delete ${productId}.`)
 
-		const result = await db.query(
-			`DELETE
-				   FROM products
-				   WHERE id = $1
-				   RETURNING id`,
-			[productId]
-		);
-		const product = result.rows[0];
+		// const result = await db.query(
+		// 	`DELETE
+		// 		   FROM products
+		// 		   WHERE id = $1
+		// 		   RETURNING id`,
+		// 	[productId]
+		// );
+		// const product = result.rows[0];
 
-		if (!product) throw new NotFoundError(`No product: ${productId}`);
+		// if (!product) throw new NotFoundError(`No product: ${productId}`);
 	}
 
+	//GUESS DONT NEED ANYMORE, SINCE ACTIVE WAS IMPLEMENTED. 
 	/** Checking if the product is on product_orders table; returns a boolean.
 	*
 	**/
 
-	static async hasEverBeenSold(productId) {
+	// static async hasEverBeenSold(productId) {
 
-		const result = await db.query(`SELECT id 
-											FROM product_orders 
-											WHERE product_id = $1`, [productId]);
+	// 	const result = await db.query(`SELECT id 
+	// 										FROM product_orders 
+	// 										WHERE product_id = $1`, [productId]);
 		
-		if (result.rows.length > 0){
-			return true
-		}
+	// 	if (result.rows.length > 0){
+	// 		return true
+	// 	}
 
-		return false
-	}
+	// 	return false
+	// }
 
     /** Checking if the product has a specific quantity; returns a boolean.
 	*
@@ -271,7 +276,8 @@ class Product {
 	static async findAllProductPhotos(productId) {
 		const productPhotosRes = await db.query(
 			`SELECT id,
-					path
+					path,
+					product_id AS "productId"
             FROM product_photos
             WHERE product_id = $1`,
 			[productId]

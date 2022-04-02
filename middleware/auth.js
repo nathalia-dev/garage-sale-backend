@@ -74,6 +74,7 @@ function ensureCorrectUserWithApiCall(model, paramName) {
 			if (!user) throw new UnauthorizedError();
 			//second, check if the login user is the same user listed at that specific data
 			const apiRes = await model.get(req.params[paramName]);
+
 			if (!(String(apiRes.userId) === user.id)) {
 				throw new UnauthorizedError();
 			}
