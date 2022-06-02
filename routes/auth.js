@@ -11,7 +11,7 @@ const { createToken } = require("../helpers/tokens");
 const userAuthSchema = require("../schemas/userAuth.json");
 const userRegisterSchema = require("../schemas/userRegister.json");
 const { BadRequestError } = require("../expressError");
-const { uploadFile  } = require("../s3")
+const { uploadFile } = require("../s3");
 
 /** POST /auth/token:  { email, password } => { token }
  *

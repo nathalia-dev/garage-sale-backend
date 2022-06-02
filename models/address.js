@@ -6,12 +6,18 @@ const { NotFoundError, BadRequestError } = require("../expressError");
 
 class Address {
 	/** Create a address (from data), update db, return new address data.
+	 * Check if it is the first user's address. If it is, it will add as default address,
 	 *
 	 * data should be { address, zipcode, state, userId, isDefault, city }
 	 *
 	 * Returns { id, address, zipcode, state, userId, isDefault, city }
 	 **/
 	static async create({ address, zipcode, state, userId, isDefault, city }) {
+		const isUserFirstAddress = !(await Address.hasOneAddress(userId));
+
+		if (isUserFirstAddress) {
+			isDefault = true;
+		}
 		const result = await db.query(
 			`INSERT INTO address (address,
                                   zipcode,
@@ -35,7 +41,7 @@ class Address {
 
 	/** Given a addressId, return data about address.
 	 *
-	 * Returns {  id, uaddress, zipcode, state, userId, isDefault, city }
+	 * Returns {  id, address, zipcode, state, userId, isDefault, city }
 	 *
 	 * Throws NotFoundError if not found.
 	 **/
@@ -84,31 +90,51 @@ class Address {
 
 		return addresses.rows;
 	}
-	/** Verify if there is another default address already saved on the db.*/
-
-	static async hasAnotherDefaultAddress(addressId) {
-		const resUserId = await db.query(`SELECT user_id as "userId" FROM address WHERE id = $1` , [addressId])
-		const userId = resUserId.rows[0].userId
-		const addresses = await db.query(`SELECT id
-										  FROM address
-										  WHERE user_id = $1 AND is_default = $2 AND id != $3`,[userId,true, addressId]);			  
-		const res = addresses.rows;
-		if (res.length > 0) {
-			return true
-		}
-
-		return false
-	}
-
-	/** Verify if there is another default address already saved on the db.
+	/** Verify if the user is creating his/her first address.
 	 *
-	 * If there is, its turn into is_default = false.
-	 *
-	 * So the only default address will be the new one.
+	 * It returns a boolean.
 	 */
 
-	static async changeDefaultAddress(newDefaultAddressId,  newDefaultAddressUserId) {
-		const oldAddresses = await db.query(`SELECT id
+	static async hasOneAddress(userId) {
+		const res = await db.query(`SELECT id FROM address WHERE user_id = $1`, [userId]);
+		const addresses = res.rows;
+
+		if (addresses.length > 0) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/** Verify if there is another default address already saved for that user on database.
+	 * It returns a boolean.
+	 */
+
+	static async hasAnotherDefaultAddress(addressId) {
+		const resUserId = await db.query(`SELECT user_id as "userId" FROM address WHERE id = $1`, [addressId]);
+		const userId = resUserId.rows[0].userId;
+		const res = await db.query(
+			`SELECT id
+										  FROM address
+										  WHERE user_id = $1 AND is_default = $2 AND id != $3`,
+			[userId, true, addressId]
+		);
+		const addresses = res.rows;
+		if (addresses.length > 0) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/** Change de default address for that user.
+	 *
+	 * Returns undefined.
+	 */
+
+	static async changeDefaultAddress(newDefaultAddressId, newDefaultAddressUserId) {
+		const oldAddresses = await db.query(
+			`SELECT id
 											 FROM address
 											 WHERE id <> $1 AND is_default = $2 AND user_id = $3`,
 			[newDefaultAddressId, true, newDefaultAddressUserId]
@@ -122,7 +148,7 @@ class Address {
 		}
 	}
 
-	/** Update address data with `data`.
+	/** Update address with `data`.
 	 *
 	 * This is a "partial update" --- it's fine if data doesn't contain
 	 * all the fields; this only changes provided ones.
@@ -137,12 +163,15 @@ class Address {
 	 */
 
 	static async update(addressId, data) {
-		if (!(data.isDefault)) {
-			const hasAnotherDefaultAddress = await Address.hasAnotherDefaultAddress(addressId)
+		//it is necessary to check "hasAnotherDefaultAddress" in the update method, as the app change automatically the "isDefault" prop , if the user
+		//is choosing another address to be the default. It happens because the app just allow to exist one defaultAddress.
+
+		if (!data.isDefault) {
+			const hasAnotherDefaultAddress = await Address.hasAnotherDefaultAddress(addressId);
 			if (!hasAnotherDefaultAddress) {
-				throw new BadRequestError(`You need a default address. First, choose or add another default address and then change this one.`)
+				throw new BadRequestError(`You need a default address. First, choose or add another default address and then change this one.`);
 			}
-		} 
+		}
 
 		const { setCols, values } = sqlForPartialUpdate(data, {
 			isDefault: "is_default",
@@ -178,10 +207,10 @@ class Address {
 	 **/
 
 	static async remove(addressId) {
+		const address = await Address.get(addressId);
 
-		const hasAnotherDefaultAddress = await Address.hasAnotherDefaultAddress(addressId)
-		if (!hasAnotherDefaultAddress) {
-			throw new BadRequestError(`You need a default address. First, choose or add another default address and then delete this one.`)
+		if (address.isDefault) {
+			throw new BadRequestError(`You need a default address. First, choose or add another default address and then delete this one.`);
 		}
 
 		const result = await db.query(
@@ -191,9 +220,9 @@ class Address {
 			   RETURNING id`,
 			[addressId]
 		);
-		const address = result.rows[0];
+		const removedAddress = result.rows[0];
 
-		if (!address) throw new NotFoundError(`No address: ${addressId}`);
+		if (!removedAddress) throw new NotFoundError(`No address: ${addressId}`);
 	}
 }
 

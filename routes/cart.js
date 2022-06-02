@@ -41,7 +41,7 @@ router.post("/", ensureCorrectUser, async function (req, res, next) {
  *
  * Find all the items at the user's cart.
  *
- * This returns: 
+ * This returns:
  *  { cartItems: { id, userId, productId, quantity, date }, ... }
  *
  * Authorization required: The cart must belong to the same user as the logged in user
@@ -56,7 +56,6 @@ router.get("/", async function (req, res, next) {
 		return next(err);
 	}
 });
-
 
 /** PATCH /cart/:cartItem_id { quantity } => { quantity }
  *
@@ -82,15 +81,15 @@ router.patch("/:cartItem_id", ensureCorrectUserWithApiCall(Cart, "cartItem_id"),
 	}
 });
 
-/** DELETE /cart/:cartItem_id  =>  { deleted:  cartItem with product cartItem_id }
+/** DELETE /cart/:cartItem_id  =>  { deleted:  cartItem  ${cartItem_id} }
  *
  * Authorization required: The cart must belong to the same user as the logged in user
  */
 
-router.delete("/:cartItem_id", ensureCorrectUser, async function (req, res, next) {
+router.delete("/:cartItem_id", ensureCorrectUserWithApiCall(Cart, "cartItem_id"), async function (req, res, next) {
 	try {
-		await Cart.remove(req.params.address_id);
-		return res.json({ deleted: ` cartItem with product ${+req.params.address_id}` });
+		await Cart.remove(req.params.cartItem_id);
+		return res.json({ deleted: ` cartItem ${+req.params.cartItem_id}` });
 	} catch (err) {
 		return next(err);
 	}

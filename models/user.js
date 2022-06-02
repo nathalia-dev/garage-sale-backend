@@ -104,39 +104,31 @@ class User {
 
 	/** Given a id, return data about user.
 	 *
-	 * Returns { id, first_name, last_name, photo, addresses }
+	 * Returns { id, first_name, last_name, email, photo, addresses }
 	 *
-	 * where addresses is [id]
+	 * where addresses is [id, address, city, state, zipcode, userId, isDefault]
+	 *
+	 *(it is returning only the user's default address)
 	 *
 	 * Throws NotFoundError if user not found.
 	 **/
 
 	static async get(id) {
-		
-		// inner join query. Wasnt able to write a simple way to convert the returning data to a structure object, 
-		//with user being the main object and address being a second object inside the user.
-
-		// const userRes = await db.query(
-		// 	`SELECT Users.id, first_name AS "firstName",last_name AS lastName, email, photo,
-		// 			address.id AS "addressId", address, city, state, zipcode, is_default AS "isDefault"
-		// 	FROM users
-		// 	INNER JOIN Address ON Users.id = Address.user_id
-		// 	WHERE Users.id = $1 AND is_default = $2`, 
-		// 	[id, false]
-		// );
-
 		const userRes = await db.query(
 			`SELECT id, first_name AS "firstName",last_name AS "lastName", email, photo
 			FROM users
-			WHERE id = $1`, 
+			WHERE id = $1`,
 			[id]
 		);
 		const user = userRes.rows[0];
 
-		const address =  await db.query( `SELECT id, address, city, state, zipcode, user_id AS "userId", is_default AS "isDefault"
+		const address = await db.query(
+			`SELECT id, address, city, state, zipcode, user_id AS "userId", is_default AS "isDefault"
 											FROM address
-											WHERE user_id = $1 AND is_default = $2`, [id, true])
-		user.address = address.rows[0]
+											WHERE user_id = $1 AND is_default = $2`,
+			[id, true]
+		);
+		user.address = address.rows[0];
 
 		if (!user) throw new NotFoundError(`No user: ${id}`);
 
@@ -155,9 +147,6 @@ class User {
 	 *
 	 * Throws NotFoundError if not found.
 	 *
-	 * WARNING: this function can set a new password.
-	 * Callers of this function must be certain they have validated inputs to this
-	 * or a serious security risks are opened.
 	 */
 
 	static async update(id, data) {

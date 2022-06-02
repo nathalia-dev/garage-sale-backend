@@ -42,7 +42,7 @@ router.post("/address", ensureCorrectUser, async function (req, res, next) {
  *
  * Find all the addresses for that specific user.
  *
- * This returns: 
+ * This returns:
  *  { address: { id, address, city, state, zipcode, userId, isDefault }, ... }
  *
  * Authorization required: The address must belong to the same user as the logged in user
@@ -53,8 +53,8 @@ router.get("/users/:user_id/address", ensureCorrectUser, async function (req, re
 	try {
 		//the ensureCorrectUser check the param :user_id and also the body.userId. To avoid that someone pass the userId through the body to break security,
 		//i did that.
-		if(req.body.userId) {
-			throw new UnauthorizedError()
+		if (req.body.userId) {
+			throw new UnauthorizedError();
 		}
 		const addresses = await Address.findAll(req.params.user_id);
 		return res.json({ addresses });
@@ -64,7 +64,6 @@ router.get("/users/:user_id/address", ensureCorrectUser, async function (req, re
 });
 
 /** I GUESS I DONT NEED THIS */
-
 
 /** GET /address/[address_id] => { address: { id, address, city, state, zipcode, userId, isDefault } }
  *
@@ -81,7 +80,6 @@ router.get("/users/:user_id/address", ensureCorrectUser, async function (req, re
 // 		return next(err);
 // 	}
 // });
-
 
 /** PATCH /address/[address_id] { address } => { address }
  *
@@ -122,9 +120,3 @@ router.delete("/address/:address_id", ensureCorrectUserWithApiCall(Address, "add
 });
 
 module.exports = router;
-
-
-
-
-
-

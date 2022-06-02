@@ -11,10 +11,10 @@ const { authenticateJWT } = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
 const productsRoutes = require("./routes/products");
 const usersRoutes = require("./routes/users");
-const cartRoutes= require("./routes/cart");
+const cartRoutes = require("./routes/cart");
 const addressRoutes = require("./routes/address");
-const ordersRoutes = require("./routes/orders")
-const imagesRoutes = require("./routes/images")
+const ordersRoutes = require("./routes/orders");
+const imagesRoutes = require("./routes/images");
 
 const morgan = require("morgan");
 

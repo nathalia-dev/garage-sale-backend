@@ -6,7 +6,7 @@ const jsonschema = require("jsonschema");
 
 const express = require("express");
 const { ensureCorrectUser, ensureCorrectUserWithApiCall } = require("../middleware/auth");
-const { BadRequestError, UnauthorizedError } = require("../expressError");
+const { BadRequestError, UnauthorizedError, NotFoundError } = require("../expressError");
 const Product = require("../models/products");
 const productNewSchema = require("../schemas/productNew.json");
 const productUpdateSchema = require("../schemas/productUpdate.json");
@@ -70,17 +70,14 @@ router.get("/products", async function (req, res, next) {
  * Authorization required: none
  **/
 
-
-router.get("/products/status", async function (req,res,next) {
+router.get("/products/status", async function (req, res, next) {
 	try {
-
-		const productStatus = await Product.getAllProductStatus()
-		return res.json({ productStatus })
-
-	} catch(err) {
+		const productStatus = await Product.getAllProductStatus();
+		return res.json({ productStatus });
+	} catch (err) {
 		return next();
 	}
-})
+});
 
 /** GET products/[product_id] => {product: { id, userId, productName, price, quantity, description, productStatusId  } }
  *
@@ -92,6 +89,9 @@ router.get("/products/status", async function (req,res,next) {
 router.get("/products/:product_id", async function (req, res, next) {
 	try {
 		const product = await Product.get(req.params.product_id);
+		if (!product.active) {
+			throw new NotFoundError("This product no longer exists.");
+		}
 		return res.json({ product });
 	} catch (err) {
 		return next(err);
@@ -136,11 +136,7 @@ router.delete("/products/:product_id", ensureCorrectUserWithApiCall(Product, "pr
 	}
 });
 
-
-
 /********** ROUTES FOR PRODUCT PHOTOS ***********/
-
-
 
 /** POST product/:product_id/photos { photo }  => { photo }
  *
@@ -191,7 +187,7 @@ router.get("/products/:product_id/photos", async function (req, res, next) {
 /** DELETE /products/:product_id/photos  =>  { deletedAllProductPhotos: productId }
  *
  * Removing ALL the photos for that specific product.
- *  
+ *
  * Authorization required: The product must belong to the same user as the logged in user
  */
 
@@ -211,12 +207,12 @@ router.delete("/products/:product_id/photos", ensureCorrectUserWithApiCall(Produ
  * Authorization required: none
  **/
 
- router.get("/products/:product_id/photos/:photo_id", async function (req, res, next) {
+router.get("/products/:product_id/photos/:photo_id", async function (req, res, next) {
 	try {
 		const productPhoto = await Product.getProductPhoto(req.params.photo_id);
 
 		//cheking if the param product_id matches with the photo productId.
-		if(String(productPhoto.productId) !== req.params.product_id) {
+		if (String(productPhoto.productId) !== req.params.product_id) {
 			throw new BadRequestError();
 		}
 
@@ -229,16 +225,16 @@ router.delete("/products/:product_id/photos", ensureCorrectUserWithApiCall(Produ
 /** DELETE /products/:product_id/photos/:photo_id  =>  { deletedProductPhoto: photoId}
  *
  * Removing just the specific photo.
- * 
+ *
  * Authorization required: The product must belong to the same user as the logged in user
  */
 
- router.delete("/products/:product_id/photos/:photo_id", ensureCorrectUserWithApiCall(Product, "product_id"), async function (req, res, next) {
+router.delete("/products/:product_id/photos/:photo_id", ensureCorrectUserWithApiCall(Product, "product_id"), async function (req, res, next) {
 	try {
-		const productPhoto = await Product.getProductPhoto(req.params.photo_id)
+		const productPhoto = await Product.getProductPhoto(req.params.photo_id);
 
 		//cheking if the param product_id matches with the photo productId.
-		if(String(productPhoto.productId) !== req.params.product_id) {
+		if (String(productPhoto.productId) !== req.params.product_id) {
 			throw new BadRequestError();
 		}
 
@@ -248,8 +244,5 @@ router.delete("/products/:product_id/photos", ensureCorrectUserWithApiCall(Produ
 		return next(err);
 	}
 });
-
-
-
 
 module.exports = router;

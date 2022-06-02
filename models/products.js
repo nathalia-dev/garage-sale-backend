@@ -3,18 +3,25 @@
 const db = require("../db");
 const { sqlForPartialUpdate } = require("../helpers/sql");
 const { NotFoundError, BadRequestError } = require("../expressError");
+const Address = require("../models/address");
 
 class Product {
 	/** Create a product (from data), update db, return new product data.
 	 *
 	 * data should be { userId, productName, price, quantity, description, productStatusId }
 	 *
-	 * Returns { id, userId, productName, price, quantity, description, productStatusId }
+	 * Returns { id, userId, productName, price, quantity, description, productStatusId, photos }
+	 *
+	 * Where photos = [] (empty array).
 	 **/
 
 	static async create({ userId, productName, price, quantity, description }) {
+		const userHasAddress = await Address.hasOneAddress(userId);
 
-		const productStatusId = await this.getCorrectProductStatus(quantity)
+		if (!userHasAddress) {
+			throw new BadRequestError("You can't add a product without an address. Please, first add an address to your profile and than create a product.");
+		}
+		const productStatusId = await this.getCorrectProductStatus(quantity);
 
 		const result = await db.query(
 			`INSERT INTO products (user_id,
@@ -30,31 +37,36 @@ class Product {
 		);
 
 		const product = result.rows[0];
-
+		product.photos = [];
 		return product;
 	}
 
 	/** Given a productId, return data about product.
 	 *
-	 * Returns { id, userId, productName, price, quantity, description, productStatusId, photos }
-	 *	where photos is [photoId, ...]
+	 * Returns { id, userId, productName, price, quantity, description, active, productStatusId, address, city, state, zipcode, photos }
+	 * where photos are {[id, path, productId...]}
 	 * Throws NotFoundError if not found.
 	 **/
 
 	static async get(productId) {
 		const productRes = await db.query(
 			`SELECT products.id,
-                    user_id AS "userId",
+                    products.user_id AS "userId",
                     product_name as "productName",
                     price,
                     quantity,
                     description,
 					active,
-                    product_status.status
+                    product_status.status,
+					address,
+					city,
+					state,
+					zipcode
             FROM products
 			INNER JOIN product_status ON Products.product_status_id=product_status.id
-            WHERE products.id = $1 `,
-			[productId]
+			INNER JOIN address ON products.user_id = address.user_id
+            WHERE products.id = $1 AND is_default = $2 `,
+			[productId, true]
 		);
 
 		const product = productRes.rows[0];
@@ -73,27 +85,31 @@ class Product {
 	 * - userId
 	 * - productName (will find case-insensitive, partial matches)
 	 *
-	 * Returns [{ id, user_id, product_name, price, quantity, description, product_status_id }, ...]
+	 * Returns [{ id, userId, productName, price, quantity, description, active, city, state, zipcode,  productStatusId }, ...]
 	 **/
 
 	static async findAll({ userId, productName } = {}) {
 		let query = `SELECT products.id,
-					          user_id AS "userId",
+					          products.user_id AS "userId",
 					  		  product_name as "productName",
 					          price,
 					          quantity,
 					          description,
 							  active,
+							  city, 
+							  state,
+							  zipcode,
 					          product_status.status
 			           FROM products
-					   INNER JOIN product_status ON Products.product_status_id=product_status.id`;
+					   INNER JOIN product_status ON Products.product_status_id=product_status.id
+					   INNER JOIN address ON products.user_id = address.user_id`;
 
-		let whereExpressions = [`active = $1`];
-		let queryValues = [true];
+		let whereExpressions = [`active = $1`, `is_default =$2`];
+		let queryValues = [true, true];
 
 		if (userId !== undefined) {
 			queryValues.push(userId);
-			whereExpressions.push(`user_id = $${queryValues.length}`);
+			whereExpressions.push(`products.user_id = $${queryValues.length}`);
 		}
 
 		if (productName !== undefined) {
@@ -107,11 +123,15 @@ class Product {
 
 		query += " ORDER BY id";
 		const productsRes = await db.query(query, queryValues);
+		const products = productsRes.rows;
 
-		return productsRes.rows;
+		for (let prod of products) {
+			prod.photos = await Product.findAllProductPhotos(prod.id);
+		}
+		return products;
 	}
 
-	/** Update product data with `data`.
+	/** Update product with `data`.
 	 *
 	 * This is a "partial update" --- it's fine if data doesn't contain
 	 * all the fields; this only changes provided ones.
@@ -119,21 +139,20 @@ class Product {
 	 * Data can include:
 	 *   { productName, price, quantity, description, productStatusId }
 	 *
-	 * Returns { id, productName, price, quantity, description, productStatusId }
+	 * Returns { id, userId, productName, price, quantity, description, active, productStatusId }
 	 *
 	 * Throws NotFoundError if not found.
 	 *
 	 */
 
 	static async update(productId, data) {
-
 		if (data.quantity >= 0) {
-			data.productStatusId = await this.getCorrectProductStatus(data.quantity)
+			data.productStatusId = await this.getCorrectProductStatus(data.quantity);
 		}
 
 		const { setCols, values } = sqlForPartialUpdate(data, {
 			productName: "product_name",
-			productStatusId: "product_status_id"
+			productStatusId: "product_status_id",
 		});
 
 		const idVarIdx = "$" + (values.length + 1);
@@ -158,63 +177,56 @@ class Product {
 		return product;
 	}
 
-	/** Soft delete method. 
-	 * 
-	 * Just update the product.active to false. 
-	 * 
+	/** Soft delete method.
+	 *
+	 * Just update the product.active to false.
+	 *
+	 * return undefined.
+	 *
 	 **/
 
 	static async softRemove(productId) {
-
-		await Product.update(productId, {active: false})
-		// const productHasBeenSold = await this.hasEverBeenSold(productId)
-
-		// if (productHasBeenSold) throw new BadRequestError(`You can't delete ${productId}.`)
-
-		// const result = await db.query(
-		// 	`DELETE
-		// 		   FROM products
-		// 		   WHERE id = $1
-		// 		   RETURNING id`,
-		// 	[productId]
-		// );
-		// const product = result.rows[0];
-
-		// if (!product) throw new NotFoundError(`No product: ${productId}`);
+		const updateRes = await Product.update(productId, { active: false });
+		const deleteProductFromAllCarts = await db.query(
+			`DELETE
+				FROM cart
+				WHERE product_id = $1
+				RETURNING id`,
+			[updateRes.id]
+		);
 	}
 
-	//GUESS DONT NEED ANYMORE, SINCE ACTIVE WAS IMPLEMENTED. 
-	/** Checking if the product is on product_orders table; returns a boolean.
-	*
-	**/
-
-	// static async hasEverBeenSold(productId) {
-
-	// 	const result = await db.query(`SELECT id 
-	// 										FROM product_orders 
-	// 										WHERE product_id = $1`, [productId]);
-		
-	// 	if (result.rows.length > 0){
-	// 		return true
-	// 	}
-
-	// 	return false
-	// }
-
-    /** Checking if the product has a specific quantity; returns a boolean.
-	*
-	**/
+	/** Checking if the product has a specific quantity; returns a boolean.
+	 *
+	 **/
 
 	static async hasQuantity(productId, quantity) {
-		const result = await db.query(`SELECT quantity FROM products WHERE id = $1`, [productId])
-		if(result.rows[0].quantity < quantity) {
-			return false
+		const result = await db.query(`SELECT quantity FROM products WHERE id = $1`, [productId]);
+		if (result.rows[0].quantity < quantity) {
+			return false;
 		}
 
-		return true
+		return true;
+	}
+
+	/** Checking if the product is active: returns a boolean.
+	 *
+	 **/
+
+	static async isProductActive(productId) {
+		const result = await db.query(`SELECT active from products WHERE id = $1`, [productId]);
+		if (result.rows[0].active === false) {
+			return false;
+		}
+		return true;
 	}
 
 	/** MODELS FOR PRODUCT STATUS */
+
+	/** Get all product status in db.
+	 *
+	 * Returns [{ id, status }, ...]
+	 */
 
 	static async getAllProductStatus() {
 		const productsStatus = await db.query(`SELECT id, status
@@ -222,25 +234,44 @@ class Product {
 		return productsStatus.rows;
 	}
 
+	/** Get a product status by name.
+	 *
+	 * Returns an id number;
+	 */
+
 	static async getProductStatusByName(name) {
-		const productsStatus = await db.query(`SELECT id, status
+		const productsStatus = await db.query(
+			`SELECT id, status
 												FROM product_status
-												WHERE status = $1`, [name]);
+												WHERE status = $1`,
+			[name]
+		);
 		return productsStatus.rows[0].id;
 	}
 
-	static async getCorrectProductStatus(quantity) {
+	/** Checking the productStatus accordingly to the quantity it has.
+	 *
+	 * Returns productStatusId number.
+	 */
 
-		let productStatus = this.getProductStatusByName("available")
+	static async getCorrectProductStatus(quantity) {
+		let productStatus = Product.getProductStatusByName("available");
 
 		if (Number(quantity) === 0) {
-			productStatus = this.getProductStatusByName("out of stock")
+			productStatus = Product.getProductStatusByName("out of stock");
 		}
 
-		return productStatus
+		return productStatus;
 	}
 
 	/** MODELS FOR PRODUCT PHOTOS */
+
+	/** Add a photo for a specific product in db.
+	 *
+	 * data should be {producId, path}
+	 *
+	 * Returns [{ id, productId, path }, ...]
+	 */
 
 	static async addProductPhoto({ productId, path }) {
 		const result = await db.query(
@@ -254,6 +285,11 @@ class Product {
 
 		return productPhoto;
 	}
+
+	/** Get a productPhoto by photoId.
+	 *
+	 * Returns { id, productId, path }
+	 */
 
 	static async getProductPhoto(photoId) {
 		const productPhotoRes = await db.query(
@@ -272,7 +308,11 @@ class Product {
 		return productPhoto;
 	}
 
-	//maybe here return only the paths? files key? 
+	/** Get all photos for that productId.
+	 *
+	 * Returns [{ id, productId, path }, ...]
+	 */
+
 	static async findAllProductPhotos(productId) {
 		const productPhotosRes = await db.query(
 			`SELECT id,
@@ -284,6 +324,13 @@ class Product {
 		);
 		return productPhotosRes.rows;
 	}
+
+	/** Remove a productPhoto by photoId.
+	 *
+	 * If it doesn't find, throw and NotFoundError.
+	 *
+	 * Returns undefined
+	 */
 
 	static async removeProductPhoto(photoId) {
 		const result = await db.query(

@@ -41,8 +41,9 @@ function ensureLoggedIn(req, res, next) {
 	}
 }
 
-/** Middleware to use when they must provide a valid token & be user matching
- *  username provided as route param or at the body.userId.
+/** Middleware to use when user must provide a valid token & be an user matching, which
+ *  means that the userId on the token must match with the userId provided as a route param
+ * or at the body.userId.
  *
  *  If not, raises Unauthorized.
  */
@@ -59,8 +60,7 @@ function ensureCorrectUser(req, res, next) {
 	}
 }
 
-/** Middleware to use when they must provide a valid token & be user matching with the specific data user. 
- * (Middleware utilizado para verificar se o usuário logado é o mesmo usuário citado como dono daquele dado especifico.)
+/** Middleware to verify if the userId on the token is the same userId referenced in the database as the owner of specific data .
  * ex: is the user.id in the token the same as the userId at that specific address? or at that specific product?
  *
  *  If not, raises Unauthorized.

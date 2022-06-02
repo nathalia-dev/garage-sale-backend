@@ -1,51 +1,41 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema",
-    "$id": "http://example.com/example.json",
-    "type": "object",
-    "default": {},
-    "examples": [
-        {
-            "userId": 1,
-            "productId": 3,
-            "quantity": 1
-        }
-    ],
-    "required": [
-        "userId",
-        "productId",
-        "quantity"
-    ],
-    "properties": {
-        "userId": {
-            "$id": "#/properties/userId",
-            "type": "integer",
-            "title": "The userId schema",
-            "description": "An explanation about the purpose of this instance.",
-            "default": 0,
-            "examples": [
-                1
-            ]
-        },
-        "productId": {
-            "$id": "#/properties/productId",
-            "type": "integer",
-            "title": "The productId schema",
-            "description": "An explanation about the purpose of this instance.",
-            "default": 0,
-            "examples": [
-                3
-            ]
-        },
-        "quantity": {
-            "$id": "#/properties/quantity",
-            "type": "integer",
-            "title": "The quantity schema",
-            "description": "An explanation about the purpose of this instance.",
-            "default": 0,
-            "examples": [
-                1
-            ]
-        }
-    },
-    "additionalProperties": false
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://example.com/example.json",
+	"type": "object",
+	"default": {},
+	"examples": [
+		{
+			"userId": 1,
+			"productId": 3,
+			"quantity": 1
+		}
+	],
+	"required": ["userId", "productId", "quantity"],
+	"properties": {
+		"userId": {
+			"$id": "#/properties/userId",
+			"type": "integer",
+			"title": "The userId schema",
+			"description": "An explanation about the purpose of this instance.",
+			"default": 0,
+			"examples": [1]
+		},
+		"productId": {
+			"$id": "#/properties/productId",
+			"type": "integer",
+			"title": "The productId schema",
+			"description": "An explanation about the purpose of this instance.",
+			"default": 0,
+			"examples": [3]
+		},
+		"quantity": {
+			"$id": "#/properties/quantity",
+			"type": "integer",
+			"title": "The quantity schema",
+			"description": "An explanation about the purpose of this instance.",
+			"default": 0,
+			"examples": [1]
+		}
+	},
+	"additionalProperties": false
 }
